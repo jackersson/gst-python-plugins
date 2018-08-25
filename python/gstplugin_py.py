@@ -82,6 +82,8 @@ class GstPluginPy(Gst.Element):
     }
 
     def __init__(self):
+
+        # Initialize properties before Base Class initialization
         self.int_prop = 1
         self.float_prop = 0.1
         self.bool_prop = False
@@ -90,13 +92,27 @@ class GstPluginPy(Gst.Element):
 
         super(GstPluginPy, self).__init__()  
         
+        # Explanation how to init Pads
+        # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/pads.html
         self.sinkpad = Gst.Pad.new_from_template(self._sinkpadtemplate, 'sink')
+
+        # Set chain function 
+        # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/chainfn.html
         self.sinkpad.set_chain_function_full(self.chainfunc, None)
+
+        # Set event function
+        # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/eventfn.html
         self.sinkpad.set_event_function_full(self.eventfunc, None)
         self.add_pad(self.sinkpad)
 
         self.srcpad = Gst.Pad.new_from_template(self._srcpadtemplate, 'src')
+
+        # Set event function
+        # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/eventfn.html
         self.srcpad.set_event_function_full(self.srceventfunc, None)
+
+        # Set query function 
+        # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/queryfn.html
         self.srcpad.set_query_function_full(self.srcqueryfunc, None)
         self.add_pad(self.srcpad)
 
@@ -148,5 +164,6 @@ class GstPluginPy(Gst.Element):
         return self.sinkpad.push_event(event)
 
 
+# Register plugin
 GObject.type_register(GstPluginPy)
 __gstelementfactory__ = (GST_PLUGIN_NAME, Gst.Rank.NONE, GstPluginPy)

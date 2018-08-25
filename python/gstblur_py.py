@@ -46,18 +46,20 @@ def gaussian_blur(img, kernel_size=3, sigma=(1, 1)):
 
 class GstGaussianBlur(Gst.Element):
 
-    __gstmetadata__ = ("Name",
-                       "Transform",
-                       "Description",
-                       "Author")
+    __gstmetadata__ = ("GaussianBlur",  # Name
+                       "Filter",  # Transform
+                       "Apply Gaussian Blur to Buffer", # Description
+                       "Taras Lishchenko") # Author
 
     __gsttemplates__ = (Gst.PadTemplate.new("src",
                                             Gst.PadDirection.SRC,
                                             Gst.PadPresence.ALWAYS,
+                                            # Set to RGB format
                                             Gst.Caps.from_string("video/x-raw,format=RGB")),
                         Gst.PadTemplate.new("sink",
                                             Gst.PadDirection.SINK,
                                             Gst.PadPresence.ALWAYS,
+                                            # Set to RGB format
                                             Gst.Caps.from_string("video/x-raw,format=RGB")))
 
     _sinkpadtemplate = __gsttemplates__[1]
@@ -66,6 +68,9 @@ class GstGaussianBlur(Gst.Element):
     # Explanation: https://python-gtk-3-tutorial.readthedocs.io/en/latest/objects.html#GObject.GObject.__gproperties__
     # Example: https://python-gtk-3-tutorial.readthedocs.io/en/latest/objects.html#properties
     __gproperties__ = {
+
+        # Parameters from cv2.gaussian_blur
+        # https://docs.opencv.org/3.0-beta/modules/imgproc/doc/filtering.html#gaussianblur
         "kernel": (int, # type
                    "Kernel Size", # nick
                    "Gaussian Kernel Size", # blurb
@@ -105,14 +110,28 @@ class GstGaussianBlur(Gst.Element):
         self.sigma_y = DEFAULT_SIGMA_Y
 
         super(GstGaussianBlur, self).__init__()  
-        
+
+        # Explanation how to init Pads
+        # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/pads.html
         self.sinkpad = Gst.Pad.new_from_template(self._sinkpadtemplate, 'sink')
+
+        # Set chain function 
+        # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/chainfn.html
         self.sinkpad.set_chain_function_full(self.chainfunc, None)
+
+        # Set event function
+        # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/eventfn.html
         self.sinkpad.set_event_function_full(self.eventfunc, None)
         self.add_pad(self.sinkpad)
 
         self.srcpad = Gst.Pad.new_from_template(self._srcpadtemplate, 'src')
+
+        # Set event function
+        # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/eventfn.html
         self.srcpad.set_event_function_full(self.srceventfunc, None)
+
+        # Set query function 
+        # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/queryfn.html
         self.srcpad.set_query_function_full(self.srcqueryfunc, None)
         self.add_pad(self.srcpad)
 
@@ -163,5 +182,6 @@ class GstGaussianBlur(Gst.Element):
         return self.sinkpad.push_event(event)
 
 
+# Register plugin
 GObject.type_register(GstGaussianBlur)
 __gstelementfactory__ = (GST_PLUGIN_NAME, Gst.Rank.NONE, GstGaussianBlur)
