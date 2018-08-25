@@ -2,6 +2,8 @@
 
     export GST_PLUGIN_PATH=$PWD
     
+**Note**: Make sure you have installed gst-python with --with-libpython-dir flag. Check [installation guide](http://lifestyletransfer.com/how-to-install-gstreamer-from-sources-on-ubuntu/)
+    
 #### gstplugin_py (template)
 
     gst-launch-1.0  videotestsrc ! videoconvert ! gstplugin_py ! videoconvert ! fakesink
