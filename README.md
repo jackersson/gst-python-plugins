@@ -1,3 +1,7 @@
+### Requirements
+
+    pip3 install git+https://github.com/jackersson/pygst-utils.git 
+
 ### Usage
 
     export GST_PLUGIN_PATH=$PWD
