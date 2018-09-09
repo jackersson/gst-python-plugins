@@ -1,5 +1,5 @@
 """
-
+    export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:$PWD
     gst-launch-1.0 videotestsrc! gstplugin_py int-prop=100 float-prop=0.2 bool-prop=True str-prop="set" ! fakesink
 
 """
@@ -16,10 +16,9 @@ gi.require_version('GstBase', '1.0')
 from gi.repository import Gst, GObject, GstBase, GLib
 
 
-GST_PLUGIN_NAME = 'gstplugin_py'
-
-
 class GstPluginPy(Gst.Element):
+
+    GST_PLUGIN_NAME = 'gstplugin_py'
     
     __gstmetadata__ = ("Name",
                        "Transform",
@@ -148,8 +147,8 @@ class GstPluginPy(Gst.Element):
         
         # DO SOMETHING
         print("{} int-prop: {}, float-prop: {}, bool-prop: {}, str-prop: {}, pyobject-prop: {}".format(
-            Gst.TIME_ARGS(buffer.pts), self.int_prop, self.float_prop, self.bool_prop,
-            self.str_prop, self.pyobject_prop))
+              Gst.TIME_ARGS(buffer.pts), self.int_prop, self.float_prop, self.bool_prop,
+              self.str_prop, self.pyobject_prop))
         # *****************
             
         return self.srcpad.push(buffer)
@@ -166,4 +165,4 @@ class GstPluginPy(Gst.Element):
 
 # Register plugin
 GObject.type_register(GstPluginPy)
-__gstelementfactory__ = (GST_PLUGIN_NAME, Gst.Rank.NONE, GstPluginPy)
+__gstelementfactory__ = (GstPluginPy.GST_PLUGIN_NAME, Gst.Rank.NONE, GstPluginPy)

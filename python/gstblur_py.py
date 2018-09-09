@@ -19,7 +19,6 @@ from gi.repository import Gst, GObject, GstBase, GLib
 # https://github.com/jackersson/pygst-utils
 from pygst_utils import get_buffer_size, map_gst_buffer
 
-GST_PLUGIN_NAME = 'gaussian_blur'
 
 DEFAULT_KERNEL_SIZE = 3
 DEFAULT_SIGMA_X = 1.0
@@ -46,10 +45,12 @@ def gaussian_blur(img, kernel_size=3, sigma=(1, 1)):
 
 class GstGaussianBlur(Gst.Element):
 
+    GST_PLUGIN_NAME = 'gaussian_blur'
+
     __gstmetadata__ = ("GaussianBlur",  # Name
                        "Filter",  # Transform
                        "Apply Gaussian Blur to Buffer", # Description
-                       "Taras Lishchenko") # Author
+                       "Taras at LifeStyleTransfer.com") # Author
 
     __gsttemplates__ = (Gst.PadTemplate.new("src",
                                             Gst.PadDirection.SRC,
@@ -184,4 +185,4 @@ class GstGaussianBlur(Gst.Element):
 
 # Register plugin
 GObject.type_register(GstGaussianBlur)
-__gstelementfactory__ = (GST_PLUGIN_NAME, Gst.Rank.NONE, GstGaussianBlur)
+__gstelementfactory__ = (GstGaussianBlur.GST_PLUGIN_NAME, Gst.Rank.NONE, GstGaussianBlur)
