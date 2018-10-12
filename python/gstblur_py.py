@@ -13,8 +13,7 @@ import numpy as np
 
 import gi
 gi.require_version('Gst', '1.0')
-gi.require_version('GstBase', '1.0')
-from gi.repository import Gst, GObject, GstBase, GLib
+from gi.repository import Gst, GObject, GLib
 
 # https://github.com/jackersson/pygst-utils
 from pygst_utils import get_buffer_size, map_gst_buffer
@@ -25,7 +24,7 @@ DEFAULT_SIGMA_X = 1.0
 DEFAULT_SIGMA_Y = 1.0
 
 
-def gaussian_blur(img, kernel_size=3, sigma=(1, 1)):  
+def gaussian_blur(img, kernel_size=3, sigma=(1, 1)):
     """
         Blur image
         :param img: [height, width, channels >= 3]
@@ -38,7 +37,7 @@ def gaussian_blur(img, kernel_size=3, sigma=(1, 1)):
         :type sigma: tuple -> (int, int)
 
         :rtype: np.ndarray
-    """  
+    """
     sigmaX, sigmaY = sigma
     return cv2.GaussianBlur(img, (kernel_size, kernel_size), sigmaX=sigmaX, sigmaY=sigmaY)
 
@@ -49,8 +48,8 @@ class GstGaussianBlur(Gst.Element):
 
     __gstmetadata__ = ("GaussianBlur",  # Name
                        "Filter",  # Transform
-                       "Apply Gaussian Blur to Buffer", # Description
-                       "Taras at LifeStyleTransfer.com") # Author
+                       "Apply Gaussian Blur to Buffer",  # Description
+                       "Taras at LifeStyleTransfer.com")  # Author
 
     __gsttemplates__ = (Gst.PadTemplate.new("src",
                                             Gst.PadDirection.SRC,
@@ -65,40 +64,40 @@ class GstGaussianBlur(Gst.Element):
 
     _sinkpadtemplate = __gsttemplates__[1]
     _srcpadtemplate = __gsttemplates__[0]
-    
+
     # Explanation: https://python-gtk-3-tutorial.readthedocs.io/en/latest/objects.html#GObject.GObject.__gproperties__
     # Example: https://python-gtk-3-tutorial.readthedocs.io/en/latest/objects.html#properties
     __gproperties__ = {
 
         # Parameters from cv2.gaussian_blur
         # https://docs.opencv.org/3.0-beta/modules/imgproc/doc/filtering.html#gaussianblur
-        "kernel": (int, # type
-                   "Kernel Size", # nick
-                   "Gaussian Kernel Size", # blurb
-                    1, # min
-                    GLib.MAXINT, # max
-                    DEFAULT_KERNEL_SIZE, # default
-                    GObject.ParamFlags.READWRITE # flags
-                    ),
+        "kernel": (int,  # type
+                   "Kernel Size",  # nick
+                   "Gaussian Kernel Size",  # blurb
+                   1,  # min
+                   GLib.MAXINT,  # max
+                   DEFAULT_KERNEL_SIZE,  # default
+                   GObject.ParamFlags.READWRITE  # flags
+                   ),
 
         # https://lazka.github.io/pgi-docs/GLib-2.0/constants.html#GLib.MAXFLOAT
         "sigmaX": (float,
                    "Standart deviation in X",
                    "Gaussian kernel standard deviation in X direction",
-                    1.0, # min
-                    GLib.MAXFLOAT, # max
-                    DEFAULT_SIGMA_X, # default
-                    GObject.ParamFlags.READWRITE
-                    ),
+                   1.0,  # min
+                   GLib.MAXFLOAT,  # max
+                   DEFAULT_SIGMA_X,  # default
+                   GObject.ParamFlags.READWRITE
+                   ),
 
         "sigmaY": (float,
-                    "Standart deviation in Y",
-                    "Gaussian kernel standard deviation in Y direction",
-                    1.0, # min
-                    GLib.MAXFLOAT, # max
-                    DEFAULT_SIGMA_Y, # default
-                    GObject.ParamFlags.READWRITE
-                    ),       
+                   "Standart deviation in Y",
+                   "Gaussian kernel standard deviation in Y direction",
+                   1.0,  # min
+                   GLib.MAXFLOAT,  # max
+                   DEFAULT_SIGMA_Y,  # default
+                   GObject.ParamFlags.READWRITE
+                   ),
     }
 
     _channels = 3
@@ -110,13 +109,13 @@ class GstGaussianBlur(Gst.Element):
         self.sigma_x = DEFAULT_SIGMA_X
         self.sigma_y = DEFAULT_SIGMA_Y
 
-        super(GstGaussianBlur, self).__init__()  
+        super(GstGaussianBlur, self).__init__()
 
         # Explanation how to init Pads
         # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/pads.html
         self.sinkpad = Gst.Pad.new_from_template(self._sinkpadtemplate, 'sink')
 
-        # Set chain function 
+        # Set chain function
         # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/chainfn.html
         self.sinkpad.set_chain_function_full(self.chainfunc, None)
 
@@ -131,7 +130,7 @@ class GstGaussianBlur(Gst.Element):
         # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/eventfn.html
         self.srcpad.set_event_function_full(self.srceventfunc, None)
 
-        # Set query function 
+        # Set query function
         # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/queryfn.html
         self.srcpad.set_query_function_full(self.srcqueryfunc, None)
         self.add_pad(self.srcpad)
@@ -157,25 +156,28 @@ class GstGaussianBlur(Gst.Element):
             raise AttributeError('unknown property %s' % prop.name)
 
     def chainfunc(self, pad, parent, buffer):
-        
+
         try:
-            success, (width, height) = get_buffer_size(self.srcpad.get_current_caps())
+            success, (width, height) = get_buffer_size(
+                self.srcpad.get_current_caps())
             if not success:
                 # https://lazka.github.io/pgi-docs/Gst-1.0/enums.html#Gst.FlowReturn
                 return Gst.FlowReturn.ERROR
 
             with map_gst_buffer(buffer, Gst.MapFlags.READ | Gst.MapFlags.WRITE) as mapped:
-                image = np.ndarray((height, width, self._channels), buffer=mapped, dtype=np.uint8)
-                image[:] = gaussian_blur(image, self.kernel_size, sigma=(self.sigma_x, self.sigma_y))
+                image = np.ndarray(
+                    (height, width, self._channels), buffer=mapped, dtype=np.uint8)
+                image[:] = gaussian_blur(
+                    image, self.kernel_size, sigma=(self.sigma_x, self.sigma_y))
 
         except Exception as e:
             logging.error(e)
-            
+
         return self.srcpad.push(buffer)
 
     def eventfunc(self, pad, parent, event):
         return self.srcpad.push_event(event)
-    
+
     def srcqueryfunc(self, pad, object, query):
         return self.sinkpad.query(query)
 
@@ -185,4 +187,5 @@ class GstGaussianBlur(Gst.Element):
 
 # Register plugin
 GObject.type_register(GstGaussianBlur)
-__gstelementfactory__ = (GstGaussianBlur.GST_PLUGIN_NAME, Gst.Rank.NONE, GstGaussianBlur)
+__gstelementfactory__ = (GstGaussianBlur.GST_PLUGIN_NAME,
+                         Gst.Rank.NONE, GstGaussianBlur)

@@ -12,14 +12,13 @@ import cv2
 
 import gi
 gi.require_version('Gst', '1.0')
-gi.require_version('GstBase', '1.0')
-from gi.repository import Gst, GObject, GstBase, GLib
+from gi.repository import Gst, GObject, GLib
 
 
 class GstPluginPy(Gst.Element):
 
     GST_PLUGIN_NAME = 'gstplugin_py'
-    
+
     __gstmetadata__ = ("Name",
                        "Transform",
                        "Description",
@@ -36,48 +35,48 @@ class GstPluginPy(Gst.Element):
 
     _sinkpadtemplate = __gsttemplates__[1]
     _srcpadtemplate = __gsttemplates__[0]
-    
+
     # Explanation: https://python-gtk-3-tutorial.readthedocs.io/en/latest/objects.html#GObject.GObject.__gproperties__
     # Example: https://python-gtk-3-tutorial.readthedocs.io/en/latest/objects.html#properties
     __gproperties__ = {
-        "int-prop": (int, # type
-                    "integer prop", # nick
-                    "A property that contains an integer", # blurb
-                    1, # min
-                    GLib.MAXINT, # max
-                    1, # default
-                    GObject.ParamFlags.READWRITE # flags
-                    ),
+        "int-prop": (int,  # type
+                     "integer prop",  # nick
+                     "A property that contains an integer",  # blurb
+                     1,  # min
+                     GLib.MAXINT,  # max
+                     1,  # default
+                     GObject.ParamFlags.READWRITE  # flags
+                     ),
 
         "float-prop": (float,
-                      "float property",
-                      "A property that contains float",
-                      0.0,
-                      1.0,
-                      0.1,
+                       "float property",
+                       "A property that contains float",
+                       0.0,
+                       1.0,
+                       0.1,
+                       GObject.ParamFlags.READWRITE
+                       ),
+
+        "bool-prop": (bool,
+                      "bool property",
+                      "A property that contains bool",
+                      False,  # default
                       GObject.ParamFlags.READWRITE
                       ),
 
-        "bool-prop": (bool,
-                     "bool property",
-                     "A property that contains bool",
-                     False, # default
+        "str-prop": (str,
+                     "str property",
+                     "A property that contains str",
+                     "str-prop",  # default
                      GObject.ParamFlags.READWRITE
                      ),
 
-        "str-prop": (str,
-                    "str property",
-                    "A property that contains str",
-                    "str-prop", # default
-                    GObject.ParamFlags.READWRITE
-                    ),
-
         # Type from: https://lazka.github.io/pgi-docs/GObject-2.0/constants.html
         "pyobject-prop": (GObject.TYPE_PYOBJECT,
-                         "pyobject property",
-                         "A property that contains an pyobject",
-                         GObject.ParamFlags.READWRITE
-                         )
+                          "pyobject property",
+                          "A property that contains an pyobject",
+                          GObject.ParamFlags.READWRITE
+                          )
     }
 
     def __init__(self):
@@ -89,13 +88,13 @@ class GstPluginPy(Gst.Element):
         self.str_prop = "str_prop"
         self.pyobject_prop = None
 
-        super(GstPluginPy, self).__init__()  
-        
+        super(GstPluginPy, self).__init__()
+
         # Explanation how to init Pads
         # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/pads.html
         self.sinkpad = Gst.Pad.new_from_template(self._sinkpadtemplate, 'sink')
 
-        # Set chain function 
+        # Set chain function
         # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/chainfn.html
         self.sinkpad.set_chain_function_full(self.chainfunc, None)
 
@@ -110,7 +109,7 @@ class GstPluginPy(Gst.Element):
         # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/eventfn.html
         self.srcpad.set_event_function_full(self.srceventfunc, None)
 
-        # Set query function 
+        # Set query function
         # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/queryfn.html
         self.srcpad.set_query_function_full(self.srcqueryfunc, None)
         self.add_pad(self.srcpad)
@@ -144,18 +143,19 @@ class GstPluginPy(Gst.Element):
             raise AttributeError('unknown property %s' % prop.name)
 
     def chainfunc(self, pad, parent, buffer):
-        
+
         # DO SOMETHING
         print("{} int-prop: {}, float-prop: {}, bool-prop: {}, str-prop: {}, pyobject-prop: {}".format(
-              Gst.TIME_ARGS(buffer.pts), self.int_prop, self.float_prop, self.bool_prop,
+              Gst.TIME_ARGS(
+                  buffer.pts), self.int_prop, self.float_prop, self.bool_prop,
               self.str_prop, self.pyobject_prop))
         # *****************
-            
+
         return self.srcpad.push(buffer)
 
     def eventfunc(self, pad, parent, event):
         return self.srcpad.push_event(event)
-    
+
     def srcqueryfunc(self, pad, object, query):
         return self.sinkpad.query(query)
 
@@ -165,4 +165,5 @@ class GstPluginPy(Gst.Element):
 
 # Register plugin
 GObject.type_register(GstPluginPy)
-__gstelementfactory__ = (GstPluginPy.GST_PLUGIN_NAME, Gst.Rank.NONE, GstPluginPy)
+__gstelementfactory__ = (GstPluginPy.GST_PLUGIN_NAME,
+                         Gst.Rank.NONE, GstPluginPy)
