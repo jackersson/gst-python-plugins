@@ -20,6 +20,15 @@
 #### gaussian_blur 
 
     gst-launch-1.0 videotestsrc! gaussian_blur kernel=9 sigmaX=5.0 sigmaY=5.0 ! videoconvert ! autovideosink
+    
+On/Off gaussian_blur plugin example: 
+
+        gst-launch-1.0 videomixer name=mixer ! videoconvert ! autovideosink \
+        filesrc location=video.mp4 ! decodebin ! videoconvert ! tee name=t ! queue ! videoconvert ! \
+        gaussian_blur kernel=9 sigmaX = 5.0 sigmaY=5.0 ! videobox left=-1280 ! videoconvert ! mixer. \ 
+        t. ! queue ! videobox left=0 ! videoconvert ! mixer.
+        
+![Result](https://github.com/jackersson/gst-python-plugins/blob/master/images/gaussian_blur.png)
 
 ### from file
     gst-launch-1.0 filesrc location=video.mp4 ! decodebin ! videoconvert ! gaussian_blur kernel=9 sigmaX = 5.0 sigmaY=5.0 ! videoconvert ! autovideosink
