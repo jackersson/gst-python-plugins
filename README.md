@@ -15,7 +15,11 @@
 
     gst-launch-1.0  videotestsrc ! videoconvert ! gstplugin_py ! videoconvert ! fakesink
     
-    gst-launch-1.0 videotestsrc! gstplugin_py int-prop=100 float-prop=0.2 bool-prop=True str-prop="set" ! fakesink
+    # from fake video
+    gst-launch-1.0 videotestsrc ! gstplugin_py int-prop=100 float-prop=0.2 bool-prop=True str-prop="set" ! fakesink
+    
+    # from file
+    gst-launch-1.0 filesrc location=video.mp4 ! decodebin ! videoconvert ! gaussian_blur kernel=9 sigmaX = 5.0 sigmaY=5.0 ! videoconvert ! autovideosink
     
 #### gaussian_blur 
 
@@ -29,8 +33,5 @@ On/Off gaussian_blur plugin example:
         t. ! queue ! videobox left=0 ! videoconvert ! mixer.
         
 ![Result](https://github.com/jackersson/gst-python-plugins/blob/master/images/gaussian_blur.png)
-
-### from file
-    gst-launch-1.0 filesrc location=video.mp4 ! decodebin ! videoconvert ! gaussian_blur kernel=9 sigmaX = 5.0 sigmaY=5.0 ! videoconvert ! autovideosink
 
 ### [Explanation](http://lifestyletransfer.com/)
