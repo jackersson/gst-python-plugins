@@ -19,8 +19,9 @@
     
 #### gaussian_blur 
 
-    gst-launch-1.0 videotestsrc! gaussian_blur kernel=9 sigmaX = 5.0 sigmaY=5.0 ! videoconvert ! autovideosink
+    gst-launch-1.0 videotestsrc! gaussian_blur kernel=9 sigmaX=5.0 sigmaY=5.0 ! videoconvert ! autovideosink
 
 ### from file
     gst-launch-1.0 filesrc location=video.mp4 ! decodebin ! videoconvert ! gaussian_blur kernel=9 sigmaX = 5.0 sigmaY=5.0 ! videoconvert ! autovideosink
 
+### [Explanation](http://lifestyletransfer.com/)
