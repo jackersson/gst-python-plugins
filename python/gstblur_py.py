@@ -33,8 +33,8 @@ def gaussian_blur(img, kernel_size=3, sigma=(1, 1)):
         :param kernel_size:
         :type kernel_size: int
 
-        :param sigma: [height, width, channels >= 3]
-        :type sigma: tuple -> (int, int)
+        :param sigma: (int, int)
+        :type sigma: tuple
 
         :rtype: np.ndarray
     """
