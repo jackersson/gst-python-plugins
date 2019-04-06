@@ -1,7 +1,7 @@
 """
+    export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:$PWD
 
     gst-launch-1.0 videotestsrc! gaussian_blur kernel=9 sigmaX = 5.0 sigmaY=5.0 ! videoconvert ! autovideosink
-
 """
 
 import logging
@@ -11,12 +11,8 @@ import time
 import cv2
 import numpy as np
 
-import gi
-gi.require_version('Gst', '1.0')
-from gi.repository import Gst, GObject, GLib
-
 # https://github.com/jackersson/pygst-utils
-from pygst_utils import get_buffer_size, map_gst_buffer
+from pygst_utils import Gst, GObject, GLib, gst_buffer_with_pad_to_ndarray
 
 
 DEFAULT_KERNEL_SIZE = 3
@@ -49,7 +45,7 @@ class GstGaussianBlur(Gst.Element):
     __gstmetadata__ = ("GaussianBlur",  # Name
                        "Filter",  # Transform
                        "Apply Gaussian Blur to Buffer",  # Description
-                       "Taras at LifeStyleTransfer.com")  # Author
+                       "Taras")  # Author
 
     __gsttemplates__ = (Gst.PadTemplate.new("src",
                                             Gst.PadDirection.SRC,
@@ -155,37 +151,41 @@ class GstGaussianBlur(Gst.Element):
         else:
             raise AttributeError('unknown property %s' % prop.name)
 
-    def chainfunc(self, pad, parent, buffer):
-
+    def chainfunc(self, pad: Gst.Pad, parent, buffer: Gst.Buffer) -> Gst.FlowReturn:
+        """
+        :param parent: GstPluginPy
+        """
         try:
-            success, (width, height) = get_buffer_size(
-                self.srcpad.get_current_caps())
-            if not success:
-                # https://lazka.github.io/pgi-docs/Gst-1.0/enums.html#Gst.FlowReturn
-                return Gst.FlowReturn.ERROR
+            # convert Gst.Buffer to np.ndarray
+            image = gst_buffer_with_pad_to_ndarray(buffer, pad, self._channels)
 
-            with map_gst_buffer(buffer, Gst.MapFlags.READ | Gst.MapFlags.WRITE) as mapped:
-                image = np.ndarray(
-                    (height, width, self._channels), buffer=mapped, dtype=np.uint8)
-                image[:] = gaussian_blur(
-                    image, self.kernel_size, sigma=(self.sigma_x, self.sigma_y))
-
+            # apply gaussian blur to image
+            image[:] = gaussian_blur(image, self.kernel_size, sigma=(self.sigma_x, self.sigma_y))
         except Exception as e:
             logging.error(e)
 
         return self.srcpad.push(buffer)
 
-    def eventfunc(self, pad, parent, event):
+    def eventfunc(self, pad: Gst.Pad, parent, event: Gst.Event) -> bool:
+        """
+        :param parent: GstPluginPy
+        """
         return self.srcpad.push_event(event)
 
-    def srcqueryfunc(self, pad, object, query):
+    def srcqueryfunc(self, pad: Gst.Pad, parent, query: Gst.Query) -> bool:
+        """
+        :param parent: GstPluginPy
+        """
         return self.sinkpad.query(query)
 
-    def srceventfunc(self, pad, parent, event):
+    def srceventfunc(self, pad: Gst.Pad, parent, event: Gst.Event) -> bool:
+        """
+        :param parent: GstPluginPy
+        """
         return self.sinkpad.push_event(event)
 
 
-# Register plugin
+# Register plugin to use it from command line
 GObject.type_register(GstGaussianBlur)
 __gstelementfactory__ = (GstGaussianBlur.GST_PLUGIN_NAME,
                          Gst.Rank.NONE, GstGaussianBlur)

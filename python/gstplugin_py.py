@@ -1,6 +1,6 @@
 """
     export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:$PWD
-    gst-launch-1.0 videotestsrc! gstplugin_py int-prop=100 float-prop=0.2 bool-prop=True str-prop="set" ! fakesink
+    gst-launch-1.0 videotestsrc ! gstplugin_py int-prop=100 float-prop=0.2 bool-prop=True str-prop="set" ! fakesink
 
 """
 
@@ -8,7 +8,6 @@ import logging
 import timeit
 import traceback
 import time
-import cv2
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -142,28 +141,39 @@ class GstPluginPy(Gst.Element):
         else:
             raise AttributeError('unknown property %s' % prop.name)
 
-    def chainfunc(self, pad, parent, buffer):
+    def chainfunc(self, pad: Gst.Pad, parent, buffer: Gst.Buffer) -> Gst.FlowReturn:
+        """
+        :param parent: GstPluginPy
+        """
 
         # DO SOMETHING
-        print("{} int-prop: {}, float-prop: {}, bool-prop: {}, str-prop: {}, pyobject-prop: {}".format(
-              Gst.TIME_ARGS(
-                  buffer.pts), self.int_prop, self.float_prop, self.bool_prop,
-              self.str_prop, self.pyobject_prop))
+        info_str = f"{Gst.TIME_ARGS(buffer.pts)}: int-prop: {self.int_prop}, float-prop: {self.float_prop} "
+        info_str += f"bool-prop: {self.bool_prop}, str-prop: {self.str_prop}, pyobject-prop: {self.pyobject_prop}"
+        Gst.info(info_str)
         # *****************
 
         return self.srcpad.push(buffer)
 
-    def eventfunc(self, pad, parent, event):
+    def eventfunc(self, pad: Gst.Pad, parent, event: Gst.Event) -> bool:
+        """
+        :param parent: GstPluginPy
+        """
         return self.srcpad.push_event(event)
 
-    def srcqueryfunc(self, pad, object, query):
+    def srcqueryfunc(self, pad: Gst.Pad, parent, query: Gst.Query) -> bool:
+        """
+        :param parent: GstPluginPy
+        """
         return self.sinkpad.query(query)
 
-    def srceventfunc(self, pad, parent, event):
+    def srceventfunc(self, pad: Gst.Pad, parent, event: Gst.Event) -> bool:
+        """
+        :param parent: GstPluginPy
+        """
         return self.sinkpad.push_event(event)
 
 
-# Register plugin
+# Register plugin to use it from command line
 GObject.type_register(GstPluginPy)
 __gstelementfactory__ = (GstPluginPy.GST_PLUGIN_NAME,
                          Gst.Rank.NONE, GstPluginPy)
