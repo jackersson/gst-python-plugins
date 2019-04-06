@@ -113,7 +113,7 @@ class GstPluginPy(Gst.Element):
         self.srcpad.set_query_function_full(self.srcqueryfunc, None)
         self.add_pad(self.srcpad)
 
-    def do_get_property(self, prop):
+    def do_get_property(self, prop: GObject.GParamSpec):
         if prop.name == 'int-prop':
             return self.int_prop
         elif prop.name == 'float-prop':
@@ -127,7 +127,7 @@ class GstPluginPy(Gst.Element):
         else:
             raise AttributeError('unknown property %s' % prop.name)
 
-    def do_set_property(self, prop, value):
+    def do_set_property(self, prop: GObject.GParamSpec, value):
         if prop.name == 'int-prop':
             self.int_prop = value
         elif prop.name == 'float-prop':
@@ -155,19 +155,25 @@ class GstPluginPy(Gst.Element):
         return self.srcpad.push(buffer)
 
     def eventfunc(self, pad: Gst.Pad, parent, event: Gst.Event) -> bool:
-        """
+        """ Forwards event to SRC (DOWNSTREAM)
+            https://lazka.github.io/pgi-docs/Gst-1.0/callbacks.html#Gst.PadEventFunction
+
         :param parent: GstPluginPy
         """
         return self.srcpad.push_event(event)
 
     def srcqueryfunc(self, pad: Gst.Pad, parent, query: Gst.Query) -> bool:
-        """
+        """ Forwards query bacj to SINK (UPSTREAM)
+            https://lazka.github.io/pgi-docs/Gst-1.0/callbacks.html#Gst.PadQueryFunction
+
         :param parent: GstPluginPy
         """
         return self.sinkpad.query(query)
 
     def srceventfunc(self, pad: Gst.Pad, parent, event: Gst.Event) -> bool:
-        """
+        """ Forwards event back to SINK (UPSTREAM)
+            https://lazka.github.io/pgi-docs/Gst-1.0/callbacks.html#Gst.PadEventFunction
+
         :param parent: GstPluginPy
         """
         return self.sinkpad.push_event(event)

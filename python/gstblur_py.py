@@ -7,6 +7,7 @@
 import logging
 import timeit
 import traceback
+from typing import Tuple
 import time
 import cv2
 import numpy as np
@@ -20,19 +21,11 @@ DEFAULT_SIGMA_X = 1.0
 DEFAULT_SIGMA_Y = 1.0
 
 
-def gaussian_blur(img, kernel_size=3, sigma=(1, 1)):
-    """
-        Blur image
-        :param img: [height, width, channels >= 3]
-        :type img: np.ndarray
-
-        :param kernel_size:
-        :type kernel_size: int
-
-        :param sigma: (int, int)
-        :type sigma: tuple
-
-        :rtype: np.ndarray
+def gaussian_blur(img: np.ndarray, kernel_size: int = 3, sigma: Tuple[int, int] = (1, 1)) -> np.ndarray:
+    """ Blurs image
+    :param img: [height, width, channels >= 3]
+    :param kernel_size:
+    :param sigma: (int, int)
     """
     sigmaX, sigmaY = sigma
     return cv2.GaussianBlur(img, (kernel_size, kernel_size), sigmaX=sigmaX, sigmaY=sigmaY)
@@ -131,7 +124,7 @@ class GstGaussianBlur(Gst.Element):
         self.srcpad.set_query_function_full(self.srcqueryfunc, None)
         self.add_pad(self.srcpad)
 
-    def do_get_property(self, prop):
+    def do_get_property(self, prop: GObject.GParamSpec):
         if prop.name == 'kernel':
             return self.kernel_size
         elif prop.name == 'sigmaX':
@@ -141,7 +134,7 @@ class GstGaussianBlur(Gst.Element):
         else:
             raise AttributeError('unknown property %s' % prop.name)
 
-    def do_set_property(self, prop, value):
+    def do_set_property(self, prop: GObject.GParamSpec, value):
         if prop.name == 'kernel':
             self.kernel_size = value
         elif prop.name == 'sigmaX':
@@ -153,7 +146,7 @@ class GstGaussianBlur(Gst.Element):
 
     def chainfunc(self, pad: Gst.Pad, parent, buffer: Gst.Buffer) -> Gst.FlowReturn:
         """
-        :param parent: GstPluginPy
+        :param parent: GstGaussianBlur
         """
         try:
             # convert Gst.Buffer to np.ndarray
@@ -167,20 +160,26 @@ class GstGaussianBlur(Gst.Element):
         return self.srcpad.push(buffer)
 
     def eventfunc(self, pad: Gst.Pad, parent, event: Gst.Event) -> bool:
-        """
-        :param parent: GstPluginPy
+        """ Forwards event to SRC (DOWNSTREAM)
+            https://lazka.github.io/pgi-docs/Gst-1.0/callbacks.html#Gst.PadEventFunction
+
+        :param parent: GstGaussianBlur
         """
         return self.srcpad.push_event(event)
 
     def srcqueryfunc(self, pad: Gst.Pad, parent, query: Gst.Query) -> bool:
-        """
-        :param parent: GstPluginPy
+        """ Forwards query bacj to SINK (UPSTREAM)
+            https://lazka.github.io/pgi-docs/Gst-1.0/callbacks.html#Gst.PadQueryFunction
+
+        :param parent: GstGaussianBlur
         """
         return self.sinkpad.query(query)
 
     def srceventfunc(self, pad: Gst.Pad, parent, event: Gst.Event) -> bool:
-        """
-        :param parent: GstPluginPy
+        """ Forwards event back to SINK (UPSTREAM)
+            https://lazka.github.io/pgi-docs/Gst-1.0/callbacks.html#Gst.PadEventFunction
+
+        :param parent: GstGaussianBlur
         """
         return self.sinkpad.push_event(event)
 
