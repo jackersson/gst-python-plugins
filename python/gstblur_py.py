@@ -1,4 +1,6 @@
 """
+    Plugin blurs incoming buffer
+
     export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:$PWD
 
     gst-launch-1.0 videotestsrc! gaussian_blur kernel=9 sigmaX = 5.0 sigmaY=5.0 ! videoconvert ! autovideosink
@@ -184,7 +186,9 @@ class GstGaussianBlur(Gst.Element):
         return self.sinkpad.push_event(event)
 
 
-# Register plugin to use it from command line
+# Required for registering plugin dynamically
+# Explained:
+# http://lifestyletransfer.com/how-to-write-gstreamer-plugin-with-python/
 GObject.type_register(GstGaussianBlur)
 __gstelementfactory__ = (GstGaussianBlur.GST_PLUGIN_NAME,
                          Gst.Rank.NONE, GstGaussianBlur)
