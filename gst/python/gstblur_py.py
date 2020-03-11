@@ -14,8 +14,8 @@ import time
 import cv2
 import numpy as np
 
-# https://github.com/jackersson/pygst-utils
-from pygst_utils import Gst, GObject, GLib, gst_buffer_with_pad_to_ndarray
+from gstreamer import Gst, GObject, GLib, GstBase
+from gstreamer.utils import gst_buffer_with_caps_to_ndarray
 
 
 DEFAULT_KERNEL_SIZE = 3
@@ -33,7 +33,10 @@ def gaussian_blur(img: np.ndarray, kernel_size: int = 3, sigma: Tuple[int, int] 
     return cv2.GaussianBlur(img, (kernel_size, kernel_size), sigmaX=sigmaX, sigmaY=sigmaY)
 
 
-class GstGaussianBlur(Gst.Element):
+FORMATS = "{RGBx,BGRx,xRGB,xBGR,RGBA,BGRA,ARGB,ABGR,RGB,BGR}"
+
+
+class GstGaussianBlur(GstBase.BaseTransform):
 
     GST_PLUGIN_NAME = 'gaussian_blur'
 
@@ -46,12 +49,12 @@ class GstGaussianBlur(Gst.Element):
                                             Gst.PadDirection.SRC,
                                             Gst.PadPresence.ALWAYS,
                                             # Set to RGB format
-                                            Gst.Caps.from_string("video/x-raw,format=RGB")),
+                                            Gst.Caps.from_string(f"video/x-raw,format={FORMATS}")),
                         Gst.PadTemplate.new("sink",
                                             Gst.PadDirection.SINK,
                                             Gst.PadPresence.ALWAYS,
                                             # Set to RGB format
-                                            Gst.Caps.from_string("video/x-raw,format=RGB")))
+                                            Gst.Caps.from_string(f"video/x-raw,format={FORMATS}")))
 
     _sinkpadtemplate = __gsttemplates__[1]
     _srcpadtemplate = __gsttemplates__[0]
@@ -62,7 +65,7 @@ class GstGaussianBlur(Gst.Element):
 
         # Parameters from cv2.gaussian_blur
         # https://docs.opencv.org/3.0-beta/modules/imgproc/doc/filtering.html#gaussianblur
-        "kernel": (int,  # type
+        "kernel": (GObject.TYPE_INT64,  # type
                    "Kernel Size",  # nick
                    "Gaussian Kernel Size",  # blurb
                    1,  # min
@@ -72,7 +75,7 @@ class GstGaussianBlur(Gst.Element):
                    ),
 
         # https://lazka.github.io/pgi-docs/GLib-2.0/constants.html#GLib.MAXFLOAT
-        "sigmaX": (float,
+        "sigmaX": (GObject.TYPE_FLOAT,
                    "Standart deviation in X",
                    "Gaussian kernel standard deviation in X direction",
                    1.0,  # min
@@ -81,7 +84,7 @@ class GstGaussianBlur(Gst.Element):
                    GObject.ParamFlags.READWRITE
                    ),
 
-        "sigmaY": (float,
+        "sigmaY": (GObject.TYPE_FLOAT,
                    "Standart deviation in Y",
                    "Gaussian kernel standard deviation in Y direction",
                    1.0,  # min
@@ -91,9 +94,9 @@ class GstGaussianBlur(Gst.Element):
                    ),
     }
 
-    _channels = 3
-
     def __init__(self):
+
+        super(GstGaussianBlur, self).__init__()
 
         # Initialize properties before Base Class initialization
         self.kernel_size = DEFAULT_KERNEL_SIZE
@@ -101,30 +104,6 @@ class GstGaussianBlur(Gst.Element):
         self.sigma_y = DEFAULT_SIGMA_Y
 
         super(GstGaussianBlur, self).__init__()
-
-        # Explanation how to init Pads
-        # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/pads.html
-        self.sinkpad = Gst.Pad.new_from_template(self._sinkpadtemplate, 'sink')
-
-        # Set chain function
-        # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/chainfn.html
-        self.sinkpad.set_chain_function_full(self.chainfunc, None)
-
-        # Set event function
-        # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/eventfn.html
-        self.sinkpad.set_event_function_full(self.eventfunc, None)
-        self.add_pad(self.sinkpad)
-
-        self.srcpad = Gst.Pad.new_from_template(self._srcpadtemplate, 'src')
-
-        # Set event function
-        # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/eventfn.html
-        self.srcpad.set_event_function_full(self.srceventfunc, None)
-
-        # Set query function
-        # https://gstreamer.freedesktop.org/documentation/plugin-development/basics/queryfn.html
-        self.srcpad.set_query_function_full(self.srcqueryfunc, None)
-        self.add_pad(self.srcpad)
 
     def do_get_property(self, prop: GObject.GParamSpec):
         if prop.name == 'kernel':
@@ -146,44 +125,17 @@ class GstGaussianBlur(Gst.Element):
         else:
             raise AttributeError('unknown property %s' % prop.name)
 
-    def chainfunc(self, pad: Gst.Pad, parent, buffer: Gst.Buffer) -> Gst.FlowReturn:
-        """
-        :param parent: GstGaussianBlur
-        """
+    def do_transform_ip(self, buffer: Gst.Buffer) -> Gst.FlowReturn:
         try:
             # convert Gst.Buffer to np.ndarray
-            image = gst_buffer_with_pad_to_ndarray(buffer, pad, self._channels)
+            image = gst_buffer_with_caps_to_ndarray(buffer, self.sinkpad.get_current_caps())
 
             # apply gaussian blur to image
             image[:] = gaussian_blur(image, self.kernel_size, sigma=(self.sigma_x, self.sigma_y))
         except Exception as e:
             logging.error(e)
 
-        return self.srcpad.push(buffer)
-
-    def eventfunc(self, pad: Gst.Pad, parent, event: Gst.Event) -> bool:
-        """ Forwards event to SRC (DOWNSTREAM)
-            https://lazka.github.io/pgi-docs/Gst-1.0/callbacks.html#Gst.PadEventFunction
-
-        :param parent: GstGaussianBlur
-        """
-        return self.srcpad.push_event(event)
-
-    def srcqueryfunc(self, pad: Gst.Pad, parent, query: Gst.Query) -> bool:
-        """ Forwards query bacj to SINK (UPSTREAM)
-            https://lazka.github.io/pgi-docs/Gst-1.0/callbacks.html#Gst.PadQueryFunction
-
-        :param parent: GstGaussianBlur
-        """
-        return self.sinkpad.query(query)
-
-    def srceventfunc(self, pad: Gst.Pad, parent, event: Gst.Event) -> bool:
-        """ Forwards event back to SINK (UPSTREAM)
-            https://lazka.github.io/pgi-docs/Gst-1.0/callbacks.html#Gst.PadEventFunction
-
-        :param parent: GstGaussianBlur
-        """
-        return self.sinkpad.push_event(event)
+        return Gst.FlowReturn.OK
 
 
 # Required for registering plugin dynamically
