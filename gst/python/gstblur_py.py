@@ -41,9 +41,9 @@ class GstGaussianBlur(GstBase.BaseTransform):
     GST_PLUGIN_NAME = 'gaussian_blur'
 
     __gstmetadata__ = ("GaussianBlur",  # Name
-                       "Filter",  # Transform
+                       "Filter",   # Transform
                        "Apply Gaussian Blur to Buffer",  # Description
-                       "Taras")  # Author
+                       "Taras Lishchenko <taras at lifestyletransfer dot com>")  # Author
 
     __gsttemplates__ = (Gst.PadTemplate.new("src",
                                             Gst.PadDirection.SRC,
@@ -55,9 +55,6 @@ class GstGaussianBlur(GstBase.BaseTransform):
                                             Gst.PadPresence.ALWAYS,
                                             # Set to RGB format
                                             Gst.Caps.from_string(f"video/x-raw,format={FORMATS}")))
-
-    _sinkpadtemplate = __gsttemplates__[1]
-    _srcpadtemplate = __gsttemplates__[0]
 
     # Explanation: https://python-gtk-3-tutorial.readthedocs.io/en/latest/objects.html#GObject.GObject.__gproperties__
     # Example: https://python-gtk-3-tutorial.readthedocs.io/en/latest/objects.html#properties
@@ -102,8 +99,6 @@ class GstGaussianBlur(GstBase.BaseTransform):
         self.kernel_size = DEFAULT_KERNEL_SIZE
         self.sigma_x = DEFAULT_SIGMA_X
         self.sigma_y = DEFAULT_SIGMA_Y
-
-        super(GstGaussianBlur, self).__init__()
 
     def do_get_property(self, prop: GObject.GParamSpec):
         if prop.name == 'kernel':

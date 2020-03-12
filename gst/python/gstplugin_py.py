@@ -34,9 +34,6 @@ class GstPluginPy(GstBase.BaseTransform):
                                             Gst.PadPresence.ALWAYS,
                                             Gst.Caps.new_any()))
 
-    _sinkpadtemplate = __gsttemplates__[1]
-    _srcpadtemplate = __gsttemplates__[0]
-
     # Explanation: https://python-gtk-3-tutorial.readthedocs.io/en/latest/objects.html#GObject.GObject.__gproperties__
     # Example: https://python-gtk-3-tutorial.readthedocs.io/en/latest/objects.html#properties
     __gproperties__ = {
