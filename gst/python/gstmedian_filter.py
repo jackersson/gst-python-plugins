@@ -30,11 +30,11 @@ class GstMedianFilter(GstBase.BaseTransform):
     __gsttemplates__ = (Gst.PadTemplate.new("src",
                                             Gst.PadDirection.SRC,
                                             Gst.PadPresence.ALWAYS,
-                                            Gst.Caps.from_string(f"video/x-raw,format={FORMATS}")),
+                                            Gst.Caps.from_string("video/x-raw,format={}".format(FORMATS))),
                         Gst.PadTemplate.new("sink",
                                             Gst.PadDirection.SINK,
                                             Gst.PadPresence.ALWAYS,
-                                            Gst.Caps.from_string(f"video/x-raw,format={FORMATS}")))
+                                            Gst.Caps.from_string("video/x-raw,format={}".format(FORMATS))))
 
     __gproperties__ = {
 

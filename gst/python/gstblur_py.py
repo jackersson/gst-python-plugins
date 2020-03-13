@@ -48,12 +48,12 @@ class GstGaussianBlur(Gst.Element):
                                             Gst.PadDirection.SRC,
                                             Gst.PadPresence.ALWAYS,
                                             # Set to target format
-                                            Gst.Caps.from_string(f"video/x-raw,format={FORMATS}")),
+                                            Gst.Caps.from_string("video/x-raw,format={}".format(FORMATS))),
                         Gst.PadTemplate.new("sink",
                                             Gst.PadDirection.SINK,
                                             Gst.PadPresence.ALWAYS,
                                             # Set to target format
-                                            Gst.Caps.from_string(f"video/x-raw,format={FORMATS}")))
+                                            Gst.Caps.from_string("video/x-raw,format={}".format(FORMATS))))
 
     _sinkpadtemplate = __gsttemplates__[1]
     _srcpadtemplate = __gsttemplates__[0]
