@@ -147,8 +147,10 @@ class GstPluginPy(Gst.Element):
         """
 
         # DO SOMETHING
-        info_str = f"{Gst.TIME_ARGS(buffer.pts)}: int-prop: {self.int_prop}, float-prop: {self.float_prop} "
-        info_str += f"bool-prop: {self.bool_prop}, str-prop: {self.str_prop}, pyobject-prop: {self.pyobject_prop}"
+        info_str = "{}: int-prop: {}, float-prop: {} ".format(Gst.TIME_ARGS(buffer.pts),
+                                                              self.int_prop, self.float_prop)
+        info_str += "bool-prop: {}, str-prop: {}, pyobject-prop: {}".format(self.bool_prop, self.str_prop,
+                                                                            self.pyobject_prop)
         Gst.info(info_str)
         # *****************
 
