@@ -11,7 +11,7 @@ import time
 
 import gi
 gi.require_version('Gst', '1.0')
-from gi.repository import Gst, GObject, GLib
+from gi.repository import Gst, GObject, GLib  # noqa:F401,F402
 
 
 class GstPluginPy(Gst.Element):
@@ -38,7 +38,7 @@ class GstPluginPy(Gst.Element):
     # Explanation: https://python-gtk-3-tutorial.readthedocs.io/en/latest/objects.html#GObject.GObject.__gproperties__
     # Example: https://python-gtk-3-tutorial.readthedocs.io/en/latest/objects.html#properties
     __gproperties__ = {
-        "int-prop": (int,  # type
+        "int-prop": (GObject.TYPE_INT64,  # type
                      "integer prop",  # nick
                      "A property that contains an integer",  # blurb
                      1,  # min
@@ -47,7 +47,7 @@ class GstPluginPy(Gst.Element):
                      GObject.ParamFlags.READWRITE  # flags
                      ),
 
-        "float-prop": (float,
+        "float-prop": (GObject.TYPE_FLOAT,
                        "float property",
                        "A property that contains float",
                        0.0,
@@ -56,14 +56,14 @@ class GstPluginPy(Gst.Element):
                        GObject.ParamFlags.READWRITE
                        ),
 
-        "bool-prop": (bool,
+        "bool-prop": (GObject.TYPE_BOOLEAN,
                       "bool property",
                       "A property that contains bool",
                       False,  # default
                       GObject.ParamFlags.READWRITE
                       ),
 
-        "str-prop": (str,
+        "str-prop": (GObject.TYPE_STRING,
                      "str property",
                      "A property that contains str",
                      "str-prop",  # default

@@ -5,11 +5,15 @@
 import numpy as np
 import cv2
 
-from pygst_utils import Gst, GObject, GstBase, GLib
-from pygst_utils import map_gst_buffer, get_buffer_size
+from gstreamer import Gst, GObject, GLib, GstBase
+from gstreamer.utils import gst_buffer_with_caps_to_ndarray
 
 
 DEFAULT_KERNEL_SIZE = 5
+
+
+FORMATS = "{RGBx,BGRx,xRGB,xBGR,RGBA,BGRA,ARGB,ABGR,RGB,BGR}"
+
 
 # https://lazka.github.io/pgi-docs/GstBase-1.0/classes/BaseTransform.html
 class GstMedianFilter(GstBase.BaseTransform):
@@ -18,25 +22,25 @@ class GstMedianFilter(GstBase.BaseTransform):
 
     GST_PLUGIN_NAME = 'median_filter'
 
-    __gstmetadata__ = ("An example plugin of GstBlurFilter",
-                       "gst-filter/gstblurfilter.py",
-                       "gst.Element blurs image",
-                       "Taras at LifeStyleTransfer.com")
+    __gstmetadata__ = ("Median Filter",
+                       "Filter",
+                       "Element blurs image",
+                       "Taras Lishchenko <taras at lifestyletransfer dot com>")
 
     __gsttemplates__ = (Gst.PadTemplate.new("src",
                                             Gst.PadDirection.SRC,
                                             Gst.PadPresence.ALWAYS,
-                                            Gst.Caps.from_string("video/x-raw,format=RGB")),
+                                            Gst.Caps.from_string(f"video/x-raw,format={FORMATS}")),
                         Gst.PadTemplate.new("sink",
                                             Gst.PadDirection.SINK,
                                             Gst.PadPresence.ALWAYS,
-                                            Gst.Caps.from_string("video/x-raw,format=RGB")))
+                                            Gst.Caps.from_string(f"video/x-raw,format={FORMATS}")))
 
     __gproperties__ = {
 
         # Parameters from cv2.gaussian_blur
         # https://docs.opencv.org/3.0-beta/modules/imgproc/doc/filtering.html#gaussianblur
-        "kernel": (int,  # type
+        "kernel": (GObject.TYPE_INT64,  # type
                    "Kernel Size",  # nick
                    "Gaussian Kernel Size",  # blurb
                    1,  # min
@@ -46,7 +50,7 @@ class GstMedianFilter(GstBase.BaseTransform):
                    ),
     }
 
-    property_float = GObject.Property(type=float)
+    # property_float = GObject.Property(type=float)
 
     def __init__(self):
         GstBase.BaseTransform.__init__(self)
@@ -71,16 +75,7 @@ class GstMedianFilter(GstBase.BaseTransform):
             https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gstreamer-libs/html/GstBaseTransform.html
         """
 
-        success, (width, height) = get_buffer_size(
-            self.srcpad.get_current_caps())
-        if not success:
-            # https://lazka.github.io/pgi-docs/Gst-1.0/enums.html#Gst.FlowReturn
-            return Gst.FlowReturn.ERROR
-
-        with map_gst_buffer(inbuffer, Gst.MapFlags.READ) as mapped:
-            frame = np.ndarray((height, width, self.CHANNELS),
-                               buffer=mapped, dtype=np.uint8)
-
+        frame = gst_buffer_with_caps_to_ndarray(inbuffer, self.sinkpad.get_current_caps())
         # YOUR IMAGE PROCESSING FUNCTION
         # BEGIN
 

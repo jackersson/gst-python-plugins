@@ -14,9 +14,8 @@ import time
 import cv2
 import numpy as np
 
-# https://github.com/jackersson/pygst-utils
-from pygst_utils import Gst, GObject, GLib, gst_buffer_with_pad_to_ndarray
-
+from gstreamer import Gst, GObject, GLib, GstBase
+from gstreamer.utils import gst_buffer_with_caps_to_ndarray
 
 DEFAULT_KERNEL_SIZE = 3
 DEFAULT_SIGMA_X = 1.0
@@ -33,6 +32,9 @@ def gaussian_blur(img: np.ndarray, kernel_size: int = 3, sigma: Tuple[int, int] 
     return cv2.GaussianBlur(img, (kernel_size, kernel_size), sigmaX=sigmaX, sigmaY=sigmaY)
 
 
+FORMATS = "{RGBx,BGRx,xRGB,xBGR,RGBA,BGRA,ARGB,ABGR,RGB,BGR}"
+
+
 class GstGaussianBlur(Gst.Element):
 
     GST_PLUGIN_NAME = 'gaussian_blur'
@@ -40,18 +42,18 @@ class GstGaussianBlur(Gst.Element):
     __gstmetadata__ = ("GaussianBlur",  # Name
                        "Filter",  # Transform
                        "Apply Gaussian Blur to Buffer",  # Description
-                       "Taras")  # Author
+                       "Taras Lishchenko <taras at lifestyletransfer dot com>")  # Author
 
     __gsttemplates__ = (Gst.PadTemplate.new("src",
                                             Gst.PadDirection.SRC,
                                             Gst.PadPresence.ALWAYS,
-                                            # Set to RGB format
-                                            Gst.Caps.from_string("video/x-raw,format=RGB")),
+                                            # Set to target format
+                                            Gst.Caps.from_string(f"video/x-raw,format={FORMATS}")),
                         Gst.PadTemplate.new("sink",
                                             Gst.PadDirection.SINK,
                                             Gst.PadPresence.ALWAYS,
-                                            # Set to RGB format
-                                            Gst.Caps.from_string("video/x-raw,format=RGB")))
+                                            # Set to target format
+                                            Gst.Caps.from_string(f"video/x-raw,format={FORMATS}")))
 
     _sinkpadtemplate = __gsttemplates__[1]
     _srcpadtemplate = __gsttemplates__[0]
@@ -62,7 +64,7 @@ class GstGaussianBlur(Gst.Element):
 
         # Parameters from cv2.gaussian_blur
         # https://docs.opencv.org/3.0-beta/modules/imgproc/doc/filtering.html#gaussianblur
-        "kernel": (int,  # type
+        "kernel": (GObject.TYPE_INT64,  # type
                    "Kernel Size",  # nick
                    "Gaussian Kernel Size",  # blurb
                    1,  # min
@@ -72,7 +74,7 @@ class GstGaussianBlur(Gst.Element):
                    ),
 
         # https://lazka.github.io/pgi-docs/GLib-2.0/constants.html#GLib.MAXFLOAT
-        "sigmaX": (float,
+        "sigmaX": (GObject.TYPE_FLOAT,
                    "Standart deviation in X",
                    "Gaussian kernel standard deviation in X direction",
                    1.0,  # min
@@ -81,7 +83,7 @@ class GstGaussianBlur(Gst.Element):
                    GObject.ParamFlags.READWRITE
                    ),
 
-        "sigmaY": (float,
+        "sigmaY": (GObject.TYPE_FLOAT,
                    "Standart deviation in Y",
                    "Gaussian kernel standard deviation in Y direction",
                    1.0,  # min

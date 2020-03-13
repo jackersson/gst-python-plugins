@@ -5,14 +5,13 @@
 
     python3 -m venv venv
     source venv/bin/activate
+    pip install -U wheel pip setuptools
 
     pip install -r requirements.txt
 
 ### Usage
 
-    export GST_PLUGIN_PATH=$PWD/gst
-
-**Note**: Make sure you have installed [gst-python](https://github.com/GStreamer/gst-python) with **--with-libpython-dir** flag. Check [installation guide](http://lifestyletransfer.com/how-to-install-gstreamer-from-sources-on-ubuntu/)
+    export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:$PWD/venv/lib/gstreamer-1.0/:$PWD/gst/
 
 #### gstplugin_py (template)
 
