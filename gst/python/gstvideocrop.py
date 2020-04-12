@@ -1,6 +1,6 @@
 """
     export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:$PWD
-    gst-launch-1.0 videotestsrc ! gstvideocrop ! fakesink
+    gst-launch-1.0 videotestsrc ! videoconvert ! gstvideocrop left=10 top=20 bottom=10 right=20 ! videoconvert ! xvimagesink
 
 """
 
