@@ -2,6 +2,9 @@
     export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:$PWD
     gst-launch-1.0 videotestsrc ! videoconvert ! gstvideocrop left=10 top=20 bottom=10 right=20 ! videoconvert ! xvimagesink
 
+    Based on:
+        https://github.com/GStreamer/gst-python/blob/master/examples/plugins/python/audioplot.py
+
 """
 
 import logging
