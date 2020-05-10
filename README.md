@@ -36,4 +36,9 @@ videobox left=-1280 ! mixer. videotestsrc ! video/x-raw,format=RGBA,width=1280,h
 
 ![Result](https://github.com/jackersson/gst-python-plugins/blob/master/images/gaussian_blur.png)
 
+#### videocrop
+```bash
+    gst-launch-1.0 videotestsrc ! videoconvert ! gstvideocrop left=10 top=20 bottom=10 right=20 ! videoconvert ! xvimagesink
+```
+
 ### [Explanation](http://lifestyletransfer.com/)

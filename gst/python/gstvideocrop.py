@@ -1,14 +1,18 @@
 """
-    export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:$PWD
+    export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:$PWD/venv/lib/gstreamer-1.0/:$PWD/gst/
     gst-launch-1.0 videotestsrc ! videoconvert ! gstvideocrop left=10 top=20 bottom=10 right=20 ! videoconvert ! xvimagesink
 
     Based on:
         https://github.com/GStreamer/gst-python/blob/master/examples/plugins/python/audioplot.py
 
+    Caps negotiation:
+        https://gstreamer.freedesktop.org/documentation/plugin-development/advanced/negotiation.html?gi-language=c
+
 """
 
 import logging
 import timeit
+import math
 import traceback
 import time
 import cv2
@@ -23,14 +27,18 @@ from gi.repository import Gst, GObject, GLib, GstBase, GstVideo  # noqa:F401,F40
 from gstreamer.utils import gst_buffer_with_caps_to_ndarray  # noqa:F401,F402
 
 
+# formats taken from existing videoconvert plugins
+# gst-inspect-1.0 videoconvert
 FORMATS = [f.strip()
-           for f in "{RGBx,BGRx,xRGB,xBGR,RGBA,BGRA,ARGB,ABGR,RGB,BGR}".strip('{ }').split(',')]
+           for f in "RGBx,xRGB,BGRx,xBGR,RGBA,ARGB,BGRA,ABGR,RGB,BGR,RGB16,RGB15,GRAY8,GRAY16_LE,GRAY16_BE".split(',')]
 
+# Input caps
 IN_CAPS = Gst.Caps(Gst.Structure('video/x-raw',
                                  format=Gst.ValueList(FORMATS),
                                  width=Gst.IntRange(range(1, GLib.MAXINT)),
                                  height=Gst.IntRange(range(1, GLib.MAXINT))))
 
+# Output caps
 OUT_CAPS = Gst.Caps(Gst.Structure('video/x-raw',
                                   format=Gst.ValueList(FORMATS),
                                   width=Gst.IntRange(range(1, GLib.MAXINT)),
@@ -38,6 +46,7 @@ OUT_CAPS = Gst.Caps(Gst.Structure('video/x-raw',
 
 
 def clip(value, min_value, max_value):
+    """Clip value to range [min_value, max_value]"""
     return min(max(value, min_value), max_value)
 
 
@@ -45,10 +54,10 @@ class GstVideoCrop(GstBase.BaseTransform):
 
     GST_PLUGIN_NAME = 'gstvideocrop'
 
-    __gstmetadata__ = ("Name",
-                       "Transform",
-                       "Description",
-                       "Author")
+    __gstmetadata__ = ("Crop",
+                       "Filter/Effect/Video",
+                       "Crops Video into user-defined region",
+                       "Taras Lishchenko <taras at lifestyletransfer dot com>")
 
     __gsttemplates__ = (Gst.PadTemplate.new("src",
                                             Gst.PadDirection.SRC,
@@ -130,20 +139,30 @@ class GstVideoCrop(GstBase.BaseTransform):
             raise AttributeError('unknown property %s' % prop.name)
 
     def do_transform(self, inbuffer: Gst.Buffer, outbuffer: Gst.Buffer) -> Gst.FlowReturn:
+        """
+        https://lazka.github.io/pgi-docs/GstBase-1.0/classes/BaseTransform.html#GstBase.BaseTransform.do_transform
+        """
+
         try:
             # convert Gst.Buffer to np.ndarray
             in_image = gst_buffer_with_caps_to_ndarray(
                 inbuffer, self.sinkpad.get_current_caps())
+
             out_image = gst_buffer_with_caps_to_ndarray(
                 outbuffer, self.srcpad.get_current_caps())
 
             h, w = in_image.shape[:2]
+
+            # define margins from each side
             left, top = max(self._left, 0), max(self._top, 0)
             bottom = h - self._bottom
             right = w - self._right
 
+            # crop image
             crop = in_image[top:bottom, left:right]
 
+            # substitute the output image with cropped one
+            # if borders are negative it will extend output image (with black color)
             out_image[:] = cv2.copyMakeBorder(crop, top=abs(min(self._top, 0)),
                                               bottom=abs(min(self._bottom, 0)),
                                               left=abs(min(self._left, 0)),
@@ -159,38 +178,50 @@ class GstVideoCrop(GstBase.BaseTransform):
         caps_ = IN_CAPS if direction == Gst.PadDirection.SRC else OUT_CAPS
 
         if filter_:
+            # https://lazka.github.io/pgi-docs/Gst-1.0/classes/Caps.html#Gst.Caps.intersect
+            # create new caps that contains all formats that are common to both
             caps_ = caps_.intersect(filter_)
 
         return caps_
 
     def do_fixate_caps(self, direction: Gst.PadDirection, caps: Gst.Caps, othercaps: Gst.Caps) -> Gst.Caps:
+        """
+            caps: initial caps
+            othercaps: target caps
+        """
         if direction == Gst.PadDirection.SRC:
             return othercaps.fixate()
         else:
-            in_width = caps.get_structure(0).get_value("width")
-            in_height = caps.get_structure(0).get_value("height")
+            # Fixate only output caps
+            in_width, in_height = [caps.get_structure(0).get_value(v) for v in ['width', 'height']]
 
-            assert (self._left + self._right) <= in_width
-            assert (self._bottom + self._top) <= in_height
+            if (self._left + self._right) > in_width:
+                raise ValueError("Left and Right Bounds exceed Input Width")
+
+            if (self._bottom + self._top) > in_height:
+                raise ValueError("Top and Bottom Bounds exceed Input Height")
 
             width = in_width - self._left - self._right
             height = in_height - self._top - self._bottom
 
             new_format = othercaps.get_structure(0).copy()
+
+            # https://lazka.github.io/pgi-docs/index.html#Gst-1.0/classes/Structure.html#Gst.Structure.fixate_field_nearest_int
             new_format.fixate_field_nearest_int("width", width)
             new_format.fixate_field_nearest_int("height", height)
             new_caps = Gst.Caps.new_empty()
             new_caps.append_structure(new_format)
+
+            # https://lazka.github.io/pgi-docs/index.html#Gst-1.0/classes/Caps.html#Gst.Caps.fixate
             return new_caps.fixate()
 
     def do_set_caps(self, incaps: Gst.Caps, outcaps: Gst.Caps) -> bool:
 
-        in_w = incaps.get_structure(0).get_value("width")
-        out_w = outcaps.get_structure(0).get_value("width")
+        in_w, in_h = [incaps.get_structure(0).get_value(v) for v in ['width', 'height']]
+        out_w, out_h = [outcaps.get_structure(0).get_value(v) for v in ['width', 'height']]
 
-        in_h = incaps.get_structure(0).get_value("height")
-        out_h = outcaps.get_structure(0).get_value("height")
-
+        # if input_size == output_size set plugin to passthrough mode
+        # https://gstreamer.freedesktop.org/documentation/additional/design/element-transform.html?gi-language=c#processing
         if in_h == out_h and in_w == out_w:
             self.set_passthrough(True)
 
